@@ -1,0 +1,34 @@
+{
+  "project": "LaunchGuard",
+  "evaluation_type": "Local deterministic readiness evaluation",
+  "actual_team_status": "Red",
+  "checks_passed": 5,
+  "checks_total": 5,
+  "checks": [
+    {
+      "check": "Produces a readiness status",
+      "passed": true,
+      "details": "Actual status: Red"
+    },
+    {
+      "check": "Blocks automatic launch approval",
+      "passed": true,
+      "details": "Do not approve launch. Escalate blockers and protect learning capacity first."
+    },
+    {
+      "check": "Includes citations/evidence",
+      "passed": true,
+      "details": "4 citations included"
+    },
+    {
+      "check": "Includes synthetic-data safety controls",
+      "passed": true,
+      "details": "Synthetic data only; No real employee names, emails, customer records, credentials, or confidential information; Citations required for requirement and readiness claims; Human approval required before any launch readiness decision; Low-confidence or missing-evidence situations should block Green readiness"
+    },
+    {
+      "check": "Includes role-level risk analysis",
+      "passed": true,
+      "details": "3 member risk records"
+    }
+  ]
+}

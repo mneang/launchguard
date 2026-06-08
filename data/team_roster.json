@@ -1,0 +1,29 @@
+[
+  {
+    "employee_id": "EMP-004",
+    "role": "AI Engineer",
+    "current_certs": ["AI-900"],
+    "required_certs": ["AI-102", "RAI-FOUNDATIONS"],
+    "practice_score_avg": 71,
+    "hours_studied": 16,
+    "last_assessment_date": "2026-05-28"
+  },
+  {
+    "employee_id": "EMP-007",
+    "role": "Platform Engineer",
+    "current_certs": ["AZ-900"],
+    "required_certs": ["AZ-204", "RAI-FOUNDATIONS"],
+    "practice_score_avg": 64,
+    "hours_studied": 12,
+    "last_assessment_date": "2026-05-30"
+  },
+  {
+    "employee_id": "EMP-011",
+    "role": "Product Lead",
+    "current_certs": ["AI-900", "RAI-FOUNDATIONS"],
+    "required_certs": ["RAI-FOUNDATIONS"],
+    "practice_score_avg": 83,
+    "hours_studied": 20,
+    "last_assessment_date": "2026-06-01"
+  }
+]

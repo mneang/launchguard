@@ -1,0 +1,12 @@
+{
+  "launch_request_id": "LR-021",
+  "initiative": "Project Nova Copilot",
+  "launch_target_date": "2026-06-28",
+  "business_goal": "Release an internal AI assistant for support analysts.",
+  "required_team_roles": [
+    "AI Engineer",
+    "Platform Engineer",
+    "Product Lead"
+  ],
+  "manager_request": "Tell me if the team is truly ready to launch and what we must fix first."
+}
