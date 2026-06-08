@@ -6,10 +6,6 @@ It helps managers answer one high-stakes question:
 
 > Is this internal AI feature team certification-ready to launch, and if not, what is the shortest safe readiness plan?
 
-## Why it matters
-
-Most learning agents recommend content. LaunchGuard turns certification readiness into a manager-grade launch decision.
-
 ## Agent Lineup
 
 1. Requirement Curator Agent
@@ -18,7 +14,7 @@ Most learning agents recommend content. LaunchGuard turns certification readines
 
 ## Microsoft IQ Integration
 
-LaunchGuard uses Foundry IQ as the grounded knowledge layer for approved synthetic certification guides, launch policies, study guidance, and readiness rubrics.
+LaunchGuard is designed to use Foundry IQ as the grounded knowledge layer for approved synthetic certification guides, launch policies, study guidance, and readiness rubrics.
 
 ## Safety
 
@@ -31,4 +27,4 @@ LaunchGuard uses Foundry IQ as the grounded knowledge layer for approved synthet
 
 ## Status
 
-In progress for Agents League Hackathon.
+Working local demo in progress for Agents League Hackathon.
