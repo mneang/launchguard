@@ -250,6 +250,55 @@ st.markdown(
 )
 
 
+st.markdown("### Scenario coverage")
+
+scenario_a, scenario_b, scenario_c = st.columns(3)
+
+with scenario_a:
+    st.markdown("""
+    <div class="mini-card">
+        <div class="small-label">Blocked Launch</div>
+        <h3>🔴 Red</h3>
+        <p class="muted">Blocks unsafe launch when evidence, certification, or capacity risks are critical.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with scenario_b:
+    st.markdown("""
+    <div class="mini-card">
+        <div class="small-label">Recoverable Launch</div>
+        <h3>🟠 Amber</h3>
+        <p class="muted">Finds a focused recovery path when readiness can improve before launch.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with scenario_c:
+    st.markdown("""
+    <div class="mini-card">
+        <div class="small-label">Ready With Approval</div>
+        <h3>🟢 Green</h3>
+        <p class="muted">Recognizes readiness while keeping final approval human-controlled.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("### System readiness")
+
+health_a, health_b, health_c, health_d = st.columns(4)
+
+with health_a:
+    st.metric("Scenarios", "3")
+
+with health_b:
+    st.metric("Agent Flow", "Active")
+
+with health_c:
+    st.metric("Grounding", "Enforced")
+
+with health_d:
+    st.metric("Approval", "Human-gated")
+
+st.caption("LaunchGuard is running with synthetic data, grounded evidence checks, scenario evaluation coverage, and no automatic launch approval.")
+
 # -----------------------------
 # Top decision board
 # -----------------------------
@@ -390,11 +439,12 @@ st.divider()
 # -----------------------------
 # Main command tabs
 # -----------------------------
-command_tab, agent_tab, evidence_tab, memo_tab, input_tab = st.tabs([
+command_tab, agent_tab, evidence_tab, memo_tab, observe_tab, input_tab = st.tabs([
     "🏆 Decision",
     "⚽ Reasoning",
     "🛡️ Evidence",
     "📝 Memo",
+    "📡 Observability",
     "📦 Data"
 ])
 
@@ -420,6 +470,30 @@ with command_tab:
         st.markdown("### After-action recommendation")
         render_recommendation_box(st, recovery_status, recovery_verifier["approval_recommendation"])
 
+    st.markdown("### Role readiness snapshot")
+
+    role_cards = st.columns(len(base_verifier["member_risks"]))
+
+    for idx, risk in enumerate(base_verifier["member_risks"]):
+        with role_cards[idx]:
+            status = risk.get("status", "Red")
+            icon = status_icon(status)
+            role = risk.get("role", "Unknown role")
+            employee_id = risk.get("employee_id", "Unknown")
+            reason_count = len(risk.get("risk_reasons", []))
+
+            st.markdown(
+                f"""
+                <div class="{status_class(status)}">
+                    <div class="small-label">{employee_id}</div>
+                    <h3>{icon} {status}</h3>
+                    <p><b>{role}</b></p>
+                    <p class="muted">{reason_count} readiness signal(s)</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
     st.markdown("### Role readiness comparison")
 
     before_df = pd.DataFrame(base_verifier["member_risks"])
@@ -430,6 +504,21 @@ with command_tab:
 
     combined_df = pd.concat([before_df, after_df], ignore_index=True)
     st.dataframe(combined_df, use_container_width=True, hide_index=True)
+
+    st.markdown("### Decision record")
+
+    decision_record = {
+        "scenario": selected_scenario,
+        "initiative": launch_request["initiative"],
+        "current_verdict": base_status,
+        "after_action_verdict": recovery_status,
+        "current_score": base_score,
+        "after_action_score": recovery_score,
+        "grounding_contract": "Passed" if base_verifier.get("grounding_contract", {}).get("passed") else "Failed",
+        "human_approval_required": True,
+    }
+
+    st.json(decision_record)
 
     st.markdown("### Approval control")
     approval = st.checkbox("I reviewed the evidence and accept this recommendation.")
@@ -529,6 +618,47 @@ with memo_tab:
         st.markdown("### After-action memo")
         recovery_memo = generate_manager_memo_fallback(recovery_verifier)
         st.text_area("After-action memo", recovery_memo, height=300)
+
+
+with observe_tab:
+    st.markdown("## Observability")
+
+    grounding_contract = base_verifier.get("grounding_contract", {})
+
+    o1, o2, o3, o4 = st.columns(4)
+
+    with o1:
+        st.metric("Scenario", selected_scenario)
+
+    with o2:
+        st.metric("Current Verdict", base_status)
+
+    with o3:
+        st.metric("Grounding Contract", "Passed" if grounding_contract.get("passed") else "Failed")
+
+    with o4:
+        st.metric("Quality Gate", "Available")
+
+    st.markdown("### What the quality gate checks")
+    st.markdown("""
+    - Scenario verdict accuracy
+    - Role-level risk records
+    - Evidence coverage
+    - Grounding contract enforcement
+    - Human approval guidance
+    - Synthetic-data safety controls
+    """)
+
+    st.markdown("### Run locally")
+    st.code("./scripts/quality_gate.sh")
+
+    st.markdown("### Runtime posture")
+    st.markdown(f"""
+    - **Runtime mode:** {runtime["mode"]}
+    - **Foundry status:** {runtime["status"]}
+    - **Data policy:** Synthetic data only
+    - **Approval model:** Human-controlled launch decision
+    """)
 
 
 with input_tab:
