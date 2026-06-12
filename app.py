@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from src.orchestrator import run_launchguard_flow, run_recovery_sprint_simulation
+from src.utils.ui_copy import decision_copy, status_label, confidence_label, recovery_summary, render_recommendation_box, next_actions_for_status, render_recommendation_box, next_actions_for_status
 from src.utils.scenarios import list_scenarios
 from src.integrations.ai_client import get_runtime_mode, generate_manager_memo_fallback
 from src.utils.cockpit import (
@@ -254,28 +255,13 @@ st.markdown(
 # -----------------------------
 left_decision, right_decision = st.columns([1, 1])
 
-decision_copy = {
-    "Red": {
-        "headline": "Do not approve launch.",
-        "body": "Critical readiness evidence is missing or unsafe."
-    },
-    "Amber": {
-        "headline": "Hold launch for recovery.",
-        "body": "The team can recover, but readiness is not fully proven."
-    },
-    "Green": {
-        "headline": "Ready for approval review.",
-        "body": "Readiness evidence is strong, but human approval is still required."
-    }
-}
-
 with left_decision:
     st.markdown(
         f"""
         <div class="{status_class(base_status)}">
             <div class="small-label">Current launch decision</div>
             <div class="big-status">{status_icon(base_status)} {base_status}</div>
-            <p><b>{decision_copy[base_status]["headline"]}</b> {decision_copy[base_status]["body"]}</p>
+            <p><b>{decision_copy(base_status)["headline"]}</b> {decision_copy(base_status)["body"]}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -287,7 +273,47 @@ with right_decision:
         <div class="{status_class(recovery_status)}">
             <div class="small-label">After recommended actions</div>
             <div class="big-status">{status_icon(recovery_status)} {recovery_status}</div>
-            <p><b>{decision_copy[recovery_status]["headline"]}</b> {decision_copy[recovery_status]["body"]}</p>
+            <p><b>{decision_copy(recovery_status)["headline"]}</b> {decision_copy(recovery_status)["body"]}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+st.markdown("### Launch review summary")
+
+summary_a, summary_b, summary_c = st.columns([1, 1, 1])
+
+with summary_a:
+    st.markdown(
+        f"""
+        <div class="mini-card">
+            <div class="small-label">Selected scenario</div>
+            <h3>{selected_scenario}</h3>
+            <p class="muted">{launch_request["initiative"]}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with summary_b:
+    st.markdown(
+        f"""
+        <div class="mini-card">
+            <div class="small-label">Manager action</div>
+            <h3>{decision_copy(base_status)["headline"]}</h3>
+            <p class="muted">{decision_copy(base_status)["primary_action"]}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with summary_c:
+    st.markdown(
+        f"""
+        <div class="mini-card">
+            <div class="small-label">Recovery movement</div>
+            <h3>{base_status} → {recovery_status}</h3>
+            <p class="muted">{recovery_summary(base_status, recovery_status, base_score, recovery_score)}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -300,7 +326,7 @@ with score_a:
     st.metric("Initial Score", f"{base_score}/100")
 
 with score_b:
-    st.metric("Post-Sprint Score", f"{recovery_score}/100", delta=f"{recovery_score - base_score}")
+    st.metric("After Actions Score", f"{recovery_score}/100", delta=f"{recovery_score - base_score}")
 
 with score_c:
     st.metric("Red Roles Removed", base_dist["Red"] - recovery_dist["Red"])
@@ -315,7 +341,7 @@ with progress_left:
     st.progress(base_score / 100)
 
 with progress_right:
-    st.caption("Post-sprint readiness score")
+    st.caption("After-action readiness score")
     st.progress(recovery_score / 100)
 
 st.markdown("## 🎬 Judge Tour")
@@ -383,16 +409,16 @@ with command_tab:
         for blocker in top_blockers(base_verifier["member_risks"]):
             st.markdown(f"- {blocker}")
 
-        st.markdown("### Initial recommendation")
-        st.error(base_verifier["approval_recommendation"])
+        st.markdown("### Current recommendation")
+        render_recommendation_box(st, base_status, base_verifier["approval_recommendation"])
 
     with c2:
         st.markdown("### Recommended next actions")
-        for action in recovery["changed_actions"]:
+        for action in next_actions_for_status(base_status, recovery["changed_actions"]):
             st.markdown(f"- {action}")
 
-        st.markdown("### Post-sprint recommendation")
-        st.warning(recovery_verifier["approval_recommendation"])
+        st.markdown("### After-action recommendation")
+        render_recommendation_box(st, recovery_status, recovery_verifier["approval_recommendation"])
 
     st.markdown("### Role readiness comparison")
 
@@ -485,9 +511,9 @@ with memo_tab:
         st.text_area("Initial readiness memo", memo, height=300)
 
     with m2:
-        st.markdown("### Post-sprint memo")
+        st.markdown("### After-action memo")
         recovery_memo = generate_manager_memo_fallback(recovery_verifier)
-        st.text_area("Post-sprint memo", recovery_memo, height=300)
+        st.text_area("After-action memo", recovery_memo, height=300)
 
 
 with input_tab:
