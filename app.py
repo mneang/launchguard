@@ -112,19 +112,19 @@ scenario_options = list_scenarios()
 with st.sidebar:
     st.markdown("### Scenario")
     selected_scenario = st.selectbox(
-        "Choose launch scenario",
+        "Launch scenario",
         scenario_options,
         index=0,
-        help="Switch between blocked, recoverable, and ready launch scenarios."
+        help="Switch between risk states to test how LaunchGuard responds."
     )
 
     scenario_takeaways = {
-        "Blocked Launch": "Proves LaunchGuard can say no when launch evidence is unsafe.",
-        "Recoverable Launch": "Proves LaunchGuard can identify a realistic recovery path before launch.",
-        "Ready With Approval": "Proves LaunchGuard can recognize readiness while still requiring human approval."
+        "Blocked Launch": "High-risk launch request. The system should block approval and explain the blockers.",
+        "Recoverable Launch": "Moderate-risk launch request. The system should show a focused recovery path.",
+        "Ready With Approval": "Ready launch request. The system should still require manager evidence review."
     }
 
-    st.info(scenario_takeaways.get(selected_scenario, "Scenario selected."))
+    st.caption(scenario_takeaways.get(selected_scenario, "Scenario selected."))
 
 # -----------------------------
 # Load reasoning flows
@@ -172,7 +172,7 @@ def status_icon(status: str) -> str:
 # -----------------------------
 with st.sidebar:
     st.title("🚀 LaunchGuard")
-    st.caption("AI launch-readiness command system")
+    st.caption("Manager launch-readiness cockpit")
 
     st.markdown("### System Status")
     if runtime["status"] == "Configured":
@@ -183,7 +183,7 @@ with st.sidebar:
 
     st.divider()
 
-    st.markdown("### Grounding Package")
+    st.markdown("### Evidence Grounding")
     st.markdown("""
     - `kb_docs/` synthetic policy set
     - Local citation mapping
@@ -207,9 +207,9 @@ with st.sidebar:
 
     st.divider()
 
-    st.markdown("### Optional Foundry Adapter")
+    st.markdown("### Foundry Adapter")
     if runtime["status"] == "Configured":
-        if st.button("Prepare Foundry-safe memo"):
+        if st.button("Prepare grounded memo"):
             from src.integrations.foundry_memo import generate_manager_memo_foundry_safe
 
             memo_result = generate_manager_memo_foundry_safe(base_verifier)
@@ -232,16 +232,16 @@ with st.sidebar:
 # Hero
 # -----------------------------
 st.title("🚀 LaunchGuard")
-st.caption("Multi-agent reasoning for AI launch certification readiness")
+st.caption("AI launch-readiness cockpit for managers")
 
 st.markdown(
     """
     <div class="hero-card">
-        <div class="small-label">Manager question</div>
-        <h2 style="margin-bottom:0.35rem;">Can this internal AI feature team safely launch?</h2>
+        <div class="small-label">Decision question</div>
+        <h2 style="margin-bottom:0.35rem;">Should this AI feature team be cleared for launch?</h2>
         <p class="muted">
-            LaunchGuard turns certification gaps, workload pressure, and policy evidence into a conservative launch-readiness decision.
-            It blocks unsafe launches, shows the reason, and recommends the shortest safe recovery path.
+            LaunchGuard evaluates certification evidence, role readiness, workload pressure, and policy guardrails.
+            It gives managers a conservative launch decision, the reason behind it, and the safest next action.
         </p>
     </div>
     """,
@@ -254,13 +254,28 @@ st.markdown(
 # -----------------------------
 left_decision, right_decision = st.columns([1, 1])
 
+decision_copy = {
+    "Red": {
+        "headline": "Do not approve launch.",
+        "body": "Critical readiness evidence is missing or unsafe."
+    },
+    "Amber": {
+        "headline": "Hold launch for recovery.",
+        "body": "The team can recover, but readiness is not fully proven."
+    },
+    "Green": {
+        "headline": "Ready for approval review.",
+        "body": "Readiness evidence is strong, but human approval is still required."
+    }
+}
+
 with left_decision:
     st.markdown(
         f"""
         <div class="{status_class(base_status)}">
-            <div class="small-label">Initial decision</div>
+            <div class="small-label">Current launch decision</div>
             <div class="big-status">{status_icon(base_status)} {base_status}</div>
-            <p><b>Launch blocked.</b> Certification, score, or capacity evidence is not safe enough.</p>
+            <p><b>{decision_copy[base_status]["headline"]}</b> {decision_copy[base_status]["body"]}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -270,9 +285,9 @@ with right_decision:
     st.markdown(
         f"""
         <div class="{status_class(recovery_status)}">
-            <div class="small-label">After recovery sprint</div>
+            <div class="small-label">After recommended actions</div>
             <div class="big-status">{status_icon(recovery_status)} {recovery_status}</div>
-            <p><b>Risk improves.</b> Launch still requires manager review and reassessment.</p>
+            <p><b>{decision_copy[recovery_status]["headline"]}</b> {decision_copy[recovery_status]["body"]}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -350,21 +365,21 @@ st.divider()
 # Main command tabs
 # -----------------------------
 command_tab, agent_tab, evidence_tab, memo_tab, input_tab = st.tabs([
-    "🏆 Command Center",
-    "⚽ Agent Trace",
-    "🛡️ Evidence & Safety",
-    "📝 Manager Memos",
-    "📦 Inputs"
+    "🏆 Decision",
+    "⚽ Reasoning",
+    "🛡️ Evidence",
+    "📝 Memo",
+    "📦 Data"
 ])
 
 
 with command_tab:
-    st.markdown("## Command Center")
+    st.markdown("## Launch Decision")
 
     c1, c2 = st.columns([1, 1])
 
     with c1:
-        st.markdown("### Why launch is blocked")
+        st.markdown("### Why this decision was made")
         for blocker in top_blockers(base_verifier["member_risks"]):
             st.markdown(f"- {blocker}")
 
@@ -372,14 +387,14 @@ with command_tab:
         st.error(base_verifier["approval_recommendation"])
 
     with c2:
-        st.markdown("### Shortest safe recovery path")
+        st.markdown("### Recommended next actions")
         for action in recovery["changed_actions"]:
             st.markdown(f"- {action}")
 
         st.markdown("### Post-sprint recommendation")
         st.warning(recovery_verifier["approval_recommendation"])
 
-    st.markdown("### Before / after role risk board")
+    st.markdown("### Role readiness comparison")
 
     before_df = pd.DataFrame(base_verifier["member_risks"])
     before_df.insert(0, "scenario", "Initial")
@@ -390,10 +405,10 @@ with command_tab:
     combined_df = pd.concat([before_df, after_df], ignore_index=True)
     st.dataframe(combined_df, use_container_width=True, hide_index=True)
 
-    st.markdown("### Human approval")
-    approval = st.checkbox("Manager reviewed evidence and accepts the current recommendation.")
+    st.markdown("### Approval control")
+    approval = st.checkbox("I reviewed the evidence and accept this recommendation.")
     if approval:
-        st.success("Approval recorded for demo purposes only. LaunchGuard never auto-approves launch.")
+        st.success("Approval recorded for review only. LaunchGuard does not automatically approve or trigger launch.")
 
 
 with agent_tab:
