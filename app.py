@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from src.orchestrator import run_launchguard_flow
+from src.orchestrator import run_launchguard_flow, run_recovery_sprint_simulation
 from src.integrations.ai_client import get_runtime_mode, generate_manager_memo_fallback
 
 
@@ -13,9 +13,29 @@ st.set_page_config(
 
 runtime = get_runtime_mode()
 
+# -----------------------------
+# Session state: keeps buttons from disappearing after rerun
+# -----------------------------
+if "review_ran" not in st.session_state:
+    st.session_state.review_ran = False
+
+if "recovery_ran" not in st.session_state:
+    st.session_state.recovery_ran = False
+
+if "foundry_memo" not in st.session_state:
+    st.session_state.foundry_memo = None
+
+if "foundry_error" not in st.session_state:
+    st.session_state.foundry_error = None
+
+
+# -----------------------------
+# Sidebar
+# -----------------------------
 with st.sidebar:
     st.title("🚀 LaunchGuard")
     st.markdown("### Runtime")
+
     if runtime["status"] == "Configured":
         st.success(runtime["mode"])
     else:
@@ -43,6 +63,19 @@ with st.sidebar:
     - Synthetic data only
     """)
 
+    st.divider()
+
+    if st.button("Reset Demo State"):
+        st.session_state.review_ran = False
+        st.session_state.recovery_ran = False
+        st.session_state.foundry_memo = None
+        st.session_state.foundry_error = None
+        st.rerun()
+
+
+# -----------------------------
+# Header
+# -----------------------------
 st.title("🚀 LaunchGuard")
 st.caption("A multi-agent reasoning system for internal AI launch certification readiness")
 
@@ -54,6 +87,10 @@ st.markdown("""
 LaunchGuard turns certification progress, workload pressure, and policy evidence into a safe launch-readiness decision.
 """)
 
+
+# -----------------------------
+# Load deterministic flow
+# -----------------------------
 result = run_launchguard_flow()
 
 launch_request = result["launch_request"]
@@ -88,6 +125,10 @@ st.dataframe(workload_df, use_container_width=True)
 
 st.divider()
 
+
+# -----------------------------
+# Agent flow overview
+# -----------------------------
 st.subheader("⚽ LaunchGuard Agent Flow")
 
 agent_col_1, agent_col_2, agent_col_3 = st.columns(3)
@@ -106,7 +147,21 @@ with agent_col_3:
 
 st.divider()
 
+
+# -----------------------------
+# Main action button
+# -----------------------------
 if st.button("Run LaunchGuard Readiness Review", type="primary"):
+    st.session_state.review_ran = True
+    st.session_state.recovery_ran = False
+    st.session_state.foundry_memo = None
+    st.session_state.foundry_error = None
+
+
+# -----------------------------
+# Show review output if run
+# -----------------------------
+if st.session_state.review_ran:
     requirement_output = result["requirement_output"]
     capacity_output = result["capacity_output"]
     verifier_output = result["verifier_output"]
@@ -149,7 +204,31 @@ if st.button("Run LaunchGuard Readiness Review", type="primary"):
 
     st.markdown("## 📝 Manager Readiness Memo")
     memo = generate_manager_memo_fallback(verifier_output)
-    st.text_area("Generated memo", memo, height=280)
+    st.text_area("Deterministic fallback memo", memo, height=240)
+
+    st.markdown("### Microsoft Foundry Memo")
+    st.caption("Optional: one controlled Foundry model call. The deterministic demo remains safe if this fails.")
+
+    if runtime["status"] == "Configured":
+        if st.button("Generate Foundry Memo", type="secondary"):
+            from src.integrations.foundry_memo import generate_manager_memo_foundry_safe
+
+            with st.spinner("Preparing Foundry-safe memo..."):
+                memo_result = generate_manager_memo_foundry_safe(verifier_output)
+
+            st.session_state.foundry_memo = memo_result["memo"]
+            st.session_state.foundry_error = memo_result["error"]
+    else:
+        st.info("Foundry is not configured. Using deterministic fallback memo only.")
+
+    if st.session_state.foundry_memo:
+        st.success("Foundry memo generated.")
+        st.text_area("Foundry-generated memo", st.session_state.foundry_memo, height=260)
+
+    if st.session_state.foundry_error:
+        st.info("Foundry configuration detected. The demo is using the safe deterministic memo while the live SDK adapter remains optional.")
+        with st.expander("Technical SDK note"):
+            st.code(st.session_state.foundry_error)
 
     st.markdown("### Grounded Drill Questions")
     for item in verifier_output["sample_grounded_drill_questions"]:
@@ -170,6 +249,44 @@ if st.button("Run LaunchGuard Readiness Review", type="primary"):
     st.markdown("## 🔐 Safety Controls")
     for control in result["safety_controls"]:
         st.markdown(f"- {control}")
+
+    st.divider()
+
+    # -----------------------------
+    # Recovery sprint simulation
+    # -----------------------------
+    st.markdown("## 🔁 Recovery Sprint Simulation")
+    st.caption("Shows how LaunchGuard reassesses after a manager-approved 14-day readiness sprint. This still does not auto-approve launch.")
+
+    if st.button("Simulate 14-Day Recovery Sprint", type="secondary"):
+        st.session_state.recovery_ran = True
+
+    if st.session_state.recovery_ran:
+        recovery = run_recovery_sprint_simulation()
+        recovery_verifier = recovery["verifier_output"]
+        recovery_status = recovery_verifier["team_status"]
+
+        st.markdown("### Sprint Actions Applied")
+        for action in recovery["changed_actions"]:
+            st.markdown(f"- {action}")
+
+        if recovery_status == "Green":
+            st.success(f"Post-Sprint Verdict: {recovery_status} — evidence improved, manager review still required")
+        elif recovery_status == "Amber":
+            st.warning(f"Post-Sprint Verdict: {recovery_status} — improved, but not fully launch-ready")
+        else:
+            st.error(f"Post-Sprint Verdict: {recovery_status} — launch remains blocked")
+
+        st.markdown("### Updated Role-Level Risks")
+        st.dataframe(
+            pd.DataFrame(recovery_verifier["member_risks"]),
+            use_container_width=True
+        )
+
+        st.markdown("### Updated Manager Recommendation")
+        st.write(recovery_verifier["executive_summary"])
+        st.warning(recovery_verifier["approval_recommendation"])
+
 
 st.divider()
 
