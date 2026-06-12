@@ -58,10 +58,17 @@ with st.sidebar:
     st.markdown("### Microsoft Stack")
     st.markdown("""
     - Microsoft Foundry-ready
-    - Foundry IQ grounding planned
-    - Microsoft Agent Framework path
+    - Foundry IQ-ready `kb_docs/`
+    - Local citation fallback
     - Synthetic data only
     """)
+
+    with st.expander("Foundry IQ cost-control note"):
+        st.write(
+            "Live Foundry IQ provisioning was not enabled in this demo environment because "
+            "the available resource tiers required a billable Azure AI Search-backed plan. "
+            "LaunchGuard keeps the grounding pattern local and reproducible with synthetic docs."
+        )
 
     st.divider()
 
