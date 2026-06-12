@@ -1,0 +1,164 @@
+{
+  "project": "LaunchGuard",
+  "evaluation_type": "Scenario hardening evaluation",
+  "checks_passed": 24,
+  "checks_total": 24,
+  "scenarios": [
+    {
+      "scenario": "Blocked Launch",
+      "expected_initial_status": "Red",
+      "actual_initial_status": "Red",
+      "actual_recovery_status": "Amber",
+      "initial_score": 65,
+      "recovery_score": 77,
+      "checks_passed": 8,
+      "checks_total": 8,
+      "checks": [
+        {
+          "check": "Initial verdict matches scenario expectation",
+          "passed": true,
+          "details": "Expected Red, got Red."
+        },
+        {
+          "check": "Initial readiness score is valid",
+          "passed": true,
+          "details": "Initial score: 65/100."
+        },
+        {
+          "check": "Recovery score does not regress for risky scenarios",
+          "passed": true,
+          "details": "Initial score: 65/100; recovery score: 77/100."
+        },
+        {
+          "check": "Role-level risk records are present",
+          "passed": true,
+          "details": "Risk records: 3."
+        },
+        {
+          "check": "Evidence coverage is strong",
+          "passed": true,
+          "details": "Coverage: 100%."
+        },
+        {
+          "check": "Approval guidance is present",
+          "passed": true,
+          "details": "Do not approve launch. Escalate blockers and protect learning capacity first."
+        },
+        {
+          "check": "Synthetic data safety control is present",
+          "passed": true,
+          "details": "Synthetic data only; No real employee names, emails, customer records, credentials, or confidential information; Citations required for requirement and readiness claims; Human approval required before any launch readiness decision; Low-confidence or missing-evidence situations should block Green readiness"
+        },
+        {
+          "check": "Human oversight / approval control is present",
+          "passed": true,
+          "details": "Synthetic data only; No real employee names, emails, customer records, credentials, or confidential information; Citations required for requirement and readiness claims; Human approval required before any launch readiness decision; Low-confidence or missing-evidence situations should block Green readiness"
+        }
+      ]
+    },
+    {
+      "scenario": "Recoverable Launch",
+      "expected_initial_status": "Amber",
+      "actual_initial_status": "Amber",
+      "actual_recovery_status": "Amber",
+      "initial_score": 88,
+      "recovery_score": 88,
+      "checks_passed": 8,
+      "checks_total": 8,
+      "checks": [
+        {
+          "check": "Initial verdict matches scenario expectation",
+          "passed": true,
+          "details": "Expected Amber, got Amber."
+        },
+        {
+          "check": "Initial readiness score is valid",
+          "passed": true,
+          "details": "Initial score: 88/100."
+        },
+        {
+          "check": "Recovery score does not regress for risky scenarios",
+          "passed": true,
+          "details": "Initial score: 88/100; recovery score: 88/100."
+        },
+        {
+          "check": "Role-level risk records are present",
+          "passed": true,
+          "details": "Risk records: 3."
+        },
+        {
+          "check": "Evidence coverage is strong",
+          "passed": true,
+          "details": "Coverage: 100%."
+        },
+        {
+          "check": "Approval guidance is present",
+          "passed": true,
+          "details": "Do not approve final launch yet. Run the recommended readiness sprint and reassess."
+        },
+        {
+          "check": "Synthetic data safety control is present",
+          "passed": true,
+          "details": "Synthetic data only; No real employee names, emails, customer records, credentials, or confidential information; Citations required for requirement and readiness claims; Human approval required before any launch readiness decision; Low-confidence or missing-evidence situations should block Green readiness"
+        },
+        {
+          "check": "Human oversight / approval control is present",
+          "passed": true,
+          "details": "Synthetic data only; No real employee names, emails, customer records, credentials, or confidential information; Citations required for requirement and readiness claims; Human approval required before any launch readiness decision; Low-confidence or missing-evidence situations should block Green readiness"
+        }
+      ]
+    },
+    {
+      "scenario": "Ready With Approval",
+      "expected_initial_status": "Green",
+      "actual_initial_status": "Green",
+      "actual_recovery_status": "Green",
+      "initial_score": 100,
+      "recovery_score": 100,
+      "checks_passed": 8,
+      "checks_total": 8,
+      "checks": [
+        {
+          "check": "Initial verdict matches scenario expectation",
+          "passed": true,
+          "details": "Expected Green, got Green."
+        },
+        {
+          "check": "Initial readiness score is valid",
+          "passed": true,
+          "details": "Initial score: 100/100."
+        },
+        {
+          "check": "Recovery score does not regress for risky scenarios",
+          "passed": true,
+          "details": "Initial score: 100/100; recovery score: 100/100."
+        },
+        {
+          "check": "Role-level risk records are present",
+          "passed": true,
+          "details": "Risk records: 3."
+        },
+        {
+          "check": "Evidence coverage is strong",
+          "passed": true,
+          "details": "Coverage: 100%."
+        },
+        {
+          "check": "Approval guidance is present",
+          "passed": true,
+          "details": "Approve only after manager reviews the cited evidence and confirms launch controls."
+        },
+        {
+          "check": "Synthetic data safety control is present",
+          "passed": true,
+          "details": "Synthetic data only; No real employee names, emails, customer records, credentials, or confidential information; Citations required for requirement and readiness claims; Human approval required before any launch readiness decision; Low-confidence or missing-evidence situations should block Green readiness"
+        },
+        {
+          "check": "Human oversight / approval control is present",
+          "passed": true,
+          "details": "Synthetic data only; No real employee names, emails, customer records, credentials, or confidential information; Citations required for requirement and readiness claims; Human approval required before any launch readiness decision; Low-confidence or missing-evidence situations should block Green readiness"
+        }
+      ]
+    }
+  ]
+}

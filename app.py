@@ -2,7 +2,15 @@ import pandas as pd
 import streamlit as st
 
 from src.orchestrator import run_launchguard_flow, run_recovery_sprint_simulation
+from src.utils.scenarios import list_scenarios
 from src.integrations.ai_client import get_runtime_mode, generate_manager_memo_fallback
+from src.utils.cockpit import (
+    readiness_score,
+    risk_distribution,
+    top_blockers,
+    evidence_coverage,
+    build_agent_timeline,
+)
 
 
 st.set_page_config(
@@ -11,16 +19,83 @@ st.set_page_config(
     layout="wide"
 )
 
+st.markdown(
+    """
+    <style>
+    .main .block-container {
+        padding-top: 2rem;
+        padding-bottom: 3rem;
+        max-width: 1400px;
+    }
+
+    .hero-card {
+        padding: 1.25rem 1.5rem;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 18px;
+        background: rgba(255,255,255,0.035);
+        margin-bottom: 1rem;
+    }
+
+    .decision-red {
+        padding: 1rem 1.25rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 90, 90, 0.45);
+        background: rgba(255, 60, 60, 0.10);
+    }
+
+    .decision-amber {
+        padding: 1rem 1.25rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 190, 60, 0.45);
+        background: rgba(255, 190, 60, 0.10);
+    }
+
+    .decision-green {
+        padding: 1rem 1.25rem;
+        border-radius: 16px;
+        border: 1px solid rgba(80, 220, 130, 0.45);
+        background: rgba(80, 220, 130, 0.10);
+    }
+
+    .mini-card {
+        padding: 1rem;
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 16px;
+        background: rgba(255,255,255,0.03);
+        height: 100%;
+    }
+
+    .muted {
+        opacity: 0.72;
+        font-size: 0.95rem;
+    }
+
+    .big-status {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 0.25rem;
+    }
+
+    .small-label {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.78rem;
+        opacity: 0.70;
+        font-weight: 700;
+    }
+
+    div[data-testid="stMetric"] {
+        padding: 0.7rem 0.8rem;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        background: rgba(255,255,255,0.025);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 runtime = get_runtime_mode()
-
-# -----------------------------
-# Session state: keeps buttons from disappearing after rerun
-# -----------------------------
-if "review_ran" not in st.session_state:
-    st.session_state.review_ran = False
-
-if "recovery_ran" not in st.session_state:
-    st.session_state.recovery_ran = False
 
 if "foundry_memo" not in st.session_state:
     st.session_state.foundry_memo = None
@@ -30,281 +105,390 @@ if "foundry_error" not in st.session_state:
 
 
 # -----------------------------
-# Sidebar
+# Scenario selector
+# -----------------------------
+scenario_options = list_scenarios()
+
+with st.sidebar:
+    st.markdown("### Scenario")
+    selected_scenario = st.selectbox(
+        "Choose launch scenario",
+        scenario_options,
+        index=0,
+        help="Switch between blocked, recoverable, and ready launch scenarios."
+    )
+
+    scenario_takeaways = {
+        "Blocked Launch": "Proves LaunchGuard can say no when launch evidence is unsafe.",
+        "Recoverable Launch": "Proves LaunchGuard can identify a realistic recovery path before launch.",
+        "Ready With Approval": "Proves LaunchGuard can recognize readiness while still requiring human approval."
+    }
+
+    st.info(scenario_takeaways.get(selected_scenario, "Scenario selected."))
+
+# -----------------------------
+# Load reasoning flows
+# -----------------------------
+base = run_launchguard_flow(selected_scenario)
+recovery = run_recovery_sprint_simulation(selected_scenario)
+
+launch_request = base["launch_request"]
+team_roster = base["team_roster"]
+workload_df = base["workload_df"]
+
+base_verifier = base["verifier_output"]
+recovery_verifier = recovery["verifier_output"]
+
+base_status = base_verifier["team_status"]
+recovery_status = recovery_verifier["team_status"]
+
+base_score = readiness_score(base_verifier["member_risks"])
+recovery_score = readiness_score(recovery_verifier["member_risks"])
+
+base_dist = risk_distribution(base_verifier["member_risks"])
+recovery_dist = risk_distribution(recovery_verifier["member_risks"])
+
+base_coverage = evidence_coverage(base_verifier["citations"])
+
+
+def status_class(status: str) -> str:
+    if status == "Green":
+        return "decision-green"
+    if status == "Amber":
+        return "decision-amber"
+    return "decision-red"
+
+
+def status_icon(status: str) -> str:
+    if status == "Green":
+        return "🟢"
+    if status == "Amber":
+        return "🟠"
+    return "🔴"
+
+
+# -----------------------------
+# Sidebar: system status only
 # -----------------------------
 with st.sidebar:
     st.title("🚀 LaunchGuard")
-    st.markdown("### Runtime")
+    st.caption("AI launch-readiness command system")
 
+    st.markdown("### System Status")
     if runtime["status"] == "Configured":
-        st.success(runtime["mode"])
+        st.success("Foundry-ready")
     else:
-        st.warning(runtime["mode"])
-
+        st.warning("Local fallback mode")
     st.caption(runtime["details"])
 
     st.divider()
 
-    st.markdown("### Judging Alignment")
+    st.markdown("### Grounding Package")
     st.markdown("""
-    - **Accuracy/Relevance:** enterprise certification readiness
-    - **Reasoning:** 3-agent workflow
-    - **Reliability:** safety gates + evals
-    - **UX:** one clear manager decision
+    - `kb_docs/` synthetic policy set
+    - Local citation mapping
+    - Evidence coverage check
+    - Human approval gate
     """)
 
-    st.divider()
-
-    st.markdown("### Microsoft Stack")
-    st.markdown("""
-    - Microsoft Foundry-ready
-    - Foundry IQ-ready `kb_docs/`
-    - Local citation fallback
-    - Synthetic data only
-    """)
-
-    with st.expander("Foundry IQ cost-control note"):
+    with st.expander("Cost-control note"):
         st.write(
-            "Live Foundry IQ provisioning was not enabled in this demo environment because "
-            "the available resource tiers required a billable Azure AI Search-backed plan. "
-            "LaunchGuard keeps the grounding pattern local and reproducible with synthetic docs."
+            "Live Foundry IQ provisioning was not enabled because the available resource tiers "
+            "required a billable Azure AI Search-backed plan. LaunchGuard preserves the grounding "
+            "pattern locally with synthetic documents and citation mapping."
         )
 
+    with st.expander("Quality gate"):
+        st.write(
+            "LaunchGuard includes local and scenario evaluations covering verdict accuracy, "
+            "evidence coverage, role-level risk analysis, recovery behavior, and safety controls."
+        )
+        st.code("./scripts/quality_gate.sh")
+
     st.divider()
 
-    if st.button("Reset Demo State"):
-        st.session_state.review_ran = False
-        st.session_state.recovery_ran = False
-        st.session_state.foundry_memo = None
-        st.session_state.foundry_error = None
-        st.rerun()
-
-
-# -----------------------------
-# Header
-# -----------------------------
-st.title("🚀 LaunchGuard")
-st.caption("A multi-agent reasoning system for internal AI launch certification readiness")
-
-st.markdown("""
-## Manager-grade readiness, not a generic study planner
-
-**Question:** Is this internal AI feature team actually certification-ready to launch — and if not, what must be fixed first?
-
-LaunchGuard turns certification progress, workload pressure, and policy evidence into a safe launch-readiness decision.
-""")
-
-
-# -----------------------------
-# Load deterministic flow
-# -----------------------------
-result = run_launchguard_flow()
-
-launch_request = result["launch_request"]
-team_roster = result["team_roster"]
-workload_df = result["workload_df"]
-
-top_a, top_b, top_c = st.columns(3)
-
-with top_a:
-    st.metric("Initiative", launch_request["initiative"])
-
-with top_b:
-    st.metric("Launch Target", launch_request["launch_target_date"])
-
-with top_c:
-    st.metric("Synthetic Team Size", len(team_roster))
-
-st.divider()
-
-left, right = st.columns([1, 1])
-
-with left:
-    st.subheader("🎯 Launch Request")
-    st.json(launch_request)
-
-with right:
-    st.subheader("👥 Synthetic Team Roster")
-    st.dataframe(pd.DataFrame(team_roster), use_container_width=True)
-
-st.subheader("📅 Synthetic Workload Signals")
-st.dataframe(workload_df, use_container_width=True)
-
-st.divider()
-
-
-# -----------------------------
-# Agent flow overview
-# -----------------------------
-st.subheader("⚽ LaunchGuard Agent Flow")
-
-agent_col_1, agent_col_2, agent_col_3 = st.columns(3)
-
-with agent_col_1:
-    st.markdown("### 1️⃣ Requirement Curator")
-    st.write("Extracts certification and launch-readiness requirements from approved guidance.")
-
-with agent_col_2:
-    st.markdown("### 2️⃣ Capacity Planner")
-    st.write("Builds a readiness sprint using workload, focus capacity, and practice score signals.")
-
-with agent_col_3:
-    st.markdown("### 3️⃣ Readiness Verifier")
-    st.write("Checks risk, generates grounded drill questions, and produces a manager-safe verdict.")
-
-st.divider()
-
-
-# -----------------------------
-# Main action button
-# -----------------------------
-if st.button("Run LaunchGuard Readiness Review", type="primary"):
-    st.session_state.review_ran = True
-    st.session_state.recovery_ran = False
-    st.session_state.foundry_memo = None
-    st.session_state.foundry_error = None
-
-
-# -----------------------------
-# Show review output if run
-# -----------------------------
-if st.session_state.review_ran:
-    requirement_output = result["requirement_output"]
-    capacity_output = result["capacity_output"]
-    verifier_output = result["verifier_output"]
-
-    status = verifier_output["team_status"]
-
-    st.markdown("## Final Readiness Verdict")
-
-    if status == "Green":
-        st.success(f"🟢 {status}: Ready only after manager evidence review")
-    elif status == "Amber":
-        st.warning(f"🟠 {status}: Recoverable, but not launch-ready yet")
-    else:
-        st.error(f"🔴 {status}: Launch blocked until risks are fixed")
-
-    st.markdown("## 🧠 Agent 1: Requirement Curator Output")
-    st.write(requirement_output["purpose"])
-    st.dataframe(
-        pd.DataFrame(requirement_output["role_requirements"]),
-        use_container_width=True
-    )
-
-    st.markdown("## 📆 Agent 2: Capacity Planner Output")
-    st.write(capacity_output["purpose"])
-    st.dataframe(
-        pd.DataFrame(capacity_output["readiness_plan"]),
-        use_container_width=True
-    )
-
-    st.markdown("## 🛡️ Agent 3: Readiness Verifier Output")
-    st.write(verifier_output["executive_summary"])
-    st.dataframe(
-        pd.DataFrame(verifier_output["member_risks"]),
-        use_container_width=True
-    )
-
-    st.markdown("### Recommended Manager Actions")
-    for action in verifier_output["recommended_actions"]:
-        st.markdown(f"- {action}")
-
-    st.markdown("## 📝 Manager Readiness Memo")
-    memo = generate_manager_memo_fallback(verifier_output)
-    st.text_area("Deterministic fallback memo", memo, height=240)
-
-    st.markdown("### Microsoft Foundry Memo")
-    st.caption("Optional: one controlled Foundry model call. The deterministic demo remains safe if this fails.")
-
+    st.markdown("### Optional Foundry Adapter")
     if runtime["status"] == "Configured":
-        if st.button("Generate Foundry Memo", type="secondary"):
+        if st.button("Prepare Foundry-safe memo"):
             from src.integrations.foundry_memo import generate_manager_memo_foundry_safe
 
-            with st.spinner("Preparing Foundry-safe memo..."):
-                memo_result = generate_manager_memo_foundry_safe(verifier_output)
-
+            memo_result = generate_manager_memo_foundry_safe(base_verifier)
             st.session_state.foundry_memo = memo_result["memo"]
             st.session_state.foundry_error = memo_result["error"]
     else:
-        st.info("Foundry is not configured. Using deterministic fallback memo only.")
+        st.info("Foundry not configured.")
 
     if st.session_state.foundry_memo:
-        st.success("Foundry memo generated.")
-        st.text_area("Foundry-generated memo", st.session_state.foundry_memo, height=260)
+        st.success("Memo prepared.")
+        with st.expander("View memo"):
+            st.text_area("Foundry-safe memo", st.session_state.foundry_memo, height=260)
 
     if st.session_state.foundry_error:
-        st.info("Foundry configuration detected. The demo is using the safe deterministic memo while the live SDK adapter remains optional.")
-        with st.expander("Technical SDK note"):
+        with st.expander("Technical adapter note"):
             st.code(st.session_state.foundry_error)
 
-    st.markdown("### Grounded Drill Questions")
-    for item in verifier_output["sample_grounded_drill_questions"]:
-        with st.expander(item["question"]):
-            st.write(item["expected_answer"])
 
-    st.markdown("## 🧾 Evidence / Citation Panel")
-    st.caption("Local synthetic citations now. Next pass: connect these documents through Foundry IQ.")
-    for citation in verifier_output["citations"]:
-        st.markdown(f"- **{citation['source']}** — {citation['claim']}")
+# -----------------------------
+# Hero
+# -----------------------------
+st.title("🚀 LaunchGuard")
+st.caption("Multi-agent reasoning for AI launch certification readiness")
 
-    st.markdown("## ✅ Human Approval Gate")
-    st.warning(verifier_output["approval_recommendation"])
-    approval = st.checkbox("Manager has reviewed the cited evidence and accepts the readiness recommendation.")
-    if approval:
-        st.success("Approval recorded for demo purposes. No automatic launch action is performed.")
+st.markdown(
+    """
+    <div class="hero-card">
+        <div class="small-label">Manager question</div>
+        <h2 style="margin-bottom:0.35rem;">Can this internal AI feature team safely launch?</h2>
+        <p class="muted">
+            LaunchGuard turns certification gaps, workload pressure, and policy evidence into a conservative launch-readiness decision.
+            It blocks unsafe launches, shows the reason, and recommends the shortest safe recovery path.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-    st.markdown("## 🔐 Safety Controls")
-    for control in result["safety_controls"]:
-        st.markdown(f"- {control}")
 
-    st.divider()
+# -----------------------------
+# Top decision board
+# -----------------------------
+left_decision, right_decision = st.columns([1, 1])
 
-    # -----------------------------
-    # Recovery sprint simulation
-    # -----------------------------
-    st.markdown("## 🔁 Recovery Sprint Simulation")
-    st.caption("Shows how LaunchGuard reassesses after a manager-approved 14-day readiness sprint. This still does not auto-approve launch.")
+with left_decision:
+    st.markdown(
+        f"""
+        <div class="{status_class(base_status)}">
+            <div class="small-label">Initial decision</div>
+            <div class="big-status">{status_icon(base_status)} {base_status}</div>
+            <p><b>Launch blocked.</b> Certification, score, or capacity evidence is not safe enough.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    if st.button("Simulate 14-Day Recovery Sprint", type="secondary"):
-        st.session_state.recovery_ran = True
+with right_decision:
+    st.markdown(
+        f"""
+        <div class="{status_class(recovery_status)}">
+            <div class="small-label">After recovery sprint</div>
+            <div class="big-status">{status_icon(recovery_status)} {recovery_status}</div>
+            <p><b>Risk improves.</b> Launch still requires manager review and reassessment.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    if st.session_state.recovery_ran:
-        recovery = run_recovery_sprint_simulation()
-        recovery_verifier = recovery["verifier_output"]
-        recovery_status = recovery_verifier["team_status"]
+st.markdown("### Readiness movement")
+score_a, score_b, score_c, score_d = st.columns(4)
 
-        st.markdown("### Sprint Actions Applied")
-        for action in recovery["changed_actions"]:
-            st.markdown(f"- {action}")
+with score_a:
+    st.metric("Initial Score", f"{base_score}/100")
 
-        if recovery_status == "Green":
-            st.success(f"Post-Sprint Verdict: {recovery_status} — evidence improved, manager review still required")
-        elif recovery_status == "Amber":
-            st.warning(f"Post-Sprint Verdict: {recovery_status} — improved, but not fully launch-ready")
-        else:
-            st.error(f"Post-Sprint Verdict: {recovery_status} — launch remains blocked")
+with score_b:
+    st.metric("Post-Sprint Score", f"{recovery_score}/100", delta=f"{recovery_score - base_score}")
 
-        st.markdown("### Updated Role-Level Risks")
-        st.dataframe(
-            pd.DataFrame(recovery_verifier["member_risks"]),
-            use_container_width=True
-        )
+with score_c:
+    st.metric("Red Roles Removed", base_dist["Red"] - recovery_dist["Red"])
 
-        st.markdown("### Updated Manager Recommendation")
-        st.write(recovery_verifier["executive_summary"])
-        st.warning(recovery_verifier["approval_recommendation"])
+with score_d:
+    st.metric("Evidence Coverage", f"{base_coverage['coverage_percent']}%")
 
+progress_left, progress_right = st.columns([1, 1])
+
+with progress_left:
+    st.caption("Initial readiness score")
+    st.progress(base_score / 100)
+
+with progress_right:
+    st.caption("Post-sprint readiness score")
+    st.progress(recovery_score / 100)
+
+st.markdown("## 🎬 Judge Tour")
+
+tour_1, tour_2, tour_3, tour_4 = st.columns(4)
+
+with tour_1:
+    st.markdown("""
+    <div class="mini-card">
+        <div class="small-label">Step 1</div>
+        <b>Choose scenario</b>
+        <p class="muted">Blocked, recoverable, or ready launch.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with tour_2:
+    st.markdown("""
+    <div class="mini-card">
+        <div class="small-label">Step 2</div>
+        <b>Read verdict</b>
+        <p class="muted">Red, Amber, or Green with score.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with tour_3:
+    st.markdown("""
+    <div class="mini-card">
+        <div class="small-label">Step 3</div>
+        <b>Inspect recovery</b>
+        <p class="muted">See the shortest safe path forward.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with tour_4:
+    st.markdown("""
+    <div class="mini-card">
+        <div class="small-label">Step 4</div>
+        <b>Check evidence</b>
+        <p class="muted">Citations, guardrails, approval gate.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.divider()
 
-st.markdown("""
-## Judge-facing build notes
 
-| Criterion | LaunchGuard proof |
-|---|---|
-| **Accuracy & Relevance** | Aligned to enterprise certification readiness and internal team learning |
-| **Reasoning** | Three specialized agents pass evidence and context forward |
-| **Reliability & Safety** | Synthetic data, citations, human approval, conservative launch blocking |
-| **UX & Presentation** | One manager question, one verdict, one memo |
-| **Creativity** | Reframes learning agents as AI launch-readiness command systems |
-""")
+# -----------------------------
+# Main command tabs
+# -----------------------------
+command_tab, agent_tab, evidence_tab, memo_tab, input_tab = st.tabs([
+    "🏆 Command Center",
+    "⚽ Agent Trace",
+    "🛡️ Evidence & Safety",
+    "📝 Manager Memos",
+    "📦 Inputs"
+])
+
+
+with command_tab:
+    st.markdown("## Command Center")
+
+    c1, c2 = st.columns([1, 1])
+
+    with c1:
+        st.markdown("### Why launch is blocked")
+        for blocker in top_blockers(base_verifier["member_risks"]):
+            st.markdown(f"- {blocker}")
+
+        st.markdown("### Initial recommendation")
+        st.error(base_verifier["approval_recommendation"])
+
+    with c2:
+        st.markdown("### Shortest safe recovery path")
+        for action in recovery["changed_actions"]:
+            st.markdown(f"- {action}")
+
+        st.markdown("### Post-sprint recommendation")
+        st.warning(recovery_verifier["approval_recommendation"])
+
+    st.markdown("### Before / after role risk board")
+
+    before_df = pd.DataFrame(base_verifier["member_risks"])
+    before_df.insert(0, "scenario", "Initial")
+
+    after_df = pd.DataFrame(recovery_verifier["member_risks"])
+    after_df.insert(0, "scenario", "After Sprint")
+
+    combined_df = pd.concat([before_df, after_df], ignore_index=True)
+    st.dataframe(combined_df, use_container_width=True, hide_index=True)
+
+    st.markdown("### Human approval")
+    approval = st.checkbox("Manager reviewed evidence and accepts the current recommendation.")
+    if approval:
+        st.success("Approval recorded for demo purposes only. LaunchGuard never auto-approves launch.")
+
+
+with agent_tab:
+    st.markdown("## Agent Trace")
+    st.caption("Three specialized agents pass evidence forward. The recovery simulator shows reassessment after targeted actions.")
+
+    st.dataframe(pd.DataFrame(build_agent_timeline()), use_container_width=True, hide_index=True)
+
+    a1, a2, a3 = st.tabs([
+        "Requirement Curator",
+        "Capacity Planner",
+        "Readiness Verifier"
+    ])
+
+    with a1:
+        req = base["requirement_output"]
+        st.write(req["purpose"])
+        st.dataframe(pd.DataFrame(req["role_requirements"]), use_container_width=True, hide_index=True)
+
+    with a2:
+        cap = base["capacity_output"]
+        st.write(cap["purpose"])
+        st.dataframe(pd.DataFrame(cap["readiness_plan"]), use_container_width=True, hide_index=True)
+
+    with a3:
+        st.write(base_verifier["purpose"])
+        st.markdown("### Manager actions")
+        for action in base_verifier["recommended_actions"]:
+            st.markdown(f"- {action}")
+
+        st.markdown("### Grounded drill questions")
+        for item in base_verifier["sample_grounded_drill_questions"]:
+            with st.expander(item["question"]):
+                st.write(item["expected_answer"])
+
+
+with evidence_tab:
+    st.markdown("## Evidence & Safety")
+
+    e1, e2 = st.columns([1, 1])
+
+    with e1:
+        st.markdown("### Evidence coverage")
+        st.metric(
+            "Required sources covered",
+            f"{base_coverage['covered_count']}/{base_coverage['expected_count']}"
+        )
+        st.progress(base_coverage["coverage_percent"] / 100)
+
+        for source in base_coverage["covered_sources"]:
+            st.markdown(f"- ✅ `{source}`")
+
+        for source in base_coverage["missing_sources"]:
+            st.markdown(f"- ⚠️ `{source}`")
+
+    with e2:
+        st.markdown("### Safety controls")
+        for control in base["safety_controls"]:
+            st.markdown(f"- {control}")
+
+    st.markdown("### Citation panel")
+    for citation in base_verifier["citations"]:
+        st.markdown(f"- **{citation['source']}** — {citation['claim']}")
+
+
+with memo_tab:
+    st.markdown("## Manager Memos")
+
+    m1, m2 = st.columns([1, 1])
+
+    with m1:
+        st.markdown("### Initial memo")
+        memo = generate_manager_memo_fallback(base_verifier)
+        st.text_area("Initial readiness memo", memo, height=300)
+
+    with m2:
+        st.markdown("### Post-sprint memo")
+        recovery_memo = generate_manager_memo_fallback(recovery_verifier)
+        st.text_area("Post-sprint memo", recovery_memo, height=300)
+
+
+with input_tab:
+    st.markdown("## Synthetic Inputs")
+
+    st.info("All data is synthetic. No real employee, customer, or confidential company information is used.")
+
+    i1, i2 = st.columns([1, 1])
+
+    with i1:
+        st.markdown("### Launch request")
+        st.json(launch_request)
+
+    with i2:
+        st.markdown("### Team roster")
+        st.dataframe(pd.DataFrame(team_roster), use_container_width=True, hide_index=True)
+
+    st.markdown("### Workload signals")
+    st.dataframe(workload_df, use_container_width=True, hide_index=True)
