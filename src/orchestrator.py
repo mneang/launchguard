@@ -11,6 +11,11 @@ from src.utils.scoring import (
     classify_team_status,
     make_recommended_actions,
 )
+from src.utils.scenarios import (
+    load_scenario,
+    scenario_to_workload_df,
+    scenario_to_workload_map,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -37,7 +42,17 @@ SYNTHETIC_CITATIONS = [
 ]
 
 
-def load_inputs() -> Dict[str, Any]:
+def load_inputs(scenario_name: str | None = None) -> Dict[str, Any]:
+    if scenario_name:
+        scenario = load_scenario(scenario_name)
+        return {
+            "scenario_name": scenario["scenario_name"],
+            "launch_request": scenario["launch_request"],
+            "team_roster": scenario["team_roster"],
+            "workload_by_employee": scenario_to_workload_map(scenario),
+            "workload_df": scenario_to_workload_df(scenario),
+        }
+
     with open(DATA_DIR / "launch_request.json", "r", encoding="utf-8") as f:
         launch_request = json.load(f)
 
@@ -51,6 +66,7 @@ def load_inputs() -> Dict[str, Any]:
     }
 
     return {
+        "scenario_name": "Blocked Launch",
         "launch_request": launch_request,
         "team_roster": team_roster,
         "workload_by_employee": workload_by_employee,
@@ -77,7 +93,7 @@ def requirement_curator_agent(launch_request: Dict[str, Any], team_roster: List[
         "launch_request_id": launch_request["launch_request_id"],
         "initiative": launch_request["initiative"],
         "role_requirements": role_requirements,
-        "grounding_status": "Local synthetic policy citations now; Foundry IQ knowledge base will replace this retrieval layer.",
+        "grounding_status": "Local synthetic policy citations now; Foundry IQ-ready knowledge package is included in kb_docs.",
         "citations": SYNTHETIC_CITATIONS[:3]
     }
 
@@ -138,10 +154,10 @@ def readiness_verifier_agent(
     recommended_actions = make_recommended_actions(member_risks)
 
     if team_status == "Green":
-        executive_summary = "LaunchGuard classifies the team as Green, but still requires manager approval before launch."
-        approval_recommendation = "Approve only after manager reviews the cited evidence."
+        executive_summary = "LaunchGuard classifies the team as Green. Readiness evidence is strong, but manager approval is still required before launch."
+        approval_recommendation = "Approve only after manager reviews the cited evidence and confirms launch controls."
     elif team_status == "Amber":
-        executive_summary = "LaunchGuard classifies the team as Amber. The team can still recover before launch, but readiness is not yet proven."
+        executive_summary = "LaunchGuard classifies the team as Amber. The team can recover before launch, but readiness is not yet fully proven."
         approval_recommendation = "Do not approve final launch yet. Run the recommended readiness sprint and reassess."
     else:
         executive_summary = "LaunchGuard classifies the team as Red. Launch readiness is blocked by certification, score, or capacity risks."
@@ -158,7 +174,7 @@ def readiness_verifier_agent(
         "sample_grounded_drill_questions": [
             {
                 "question": "Which required role is currently most at risk for launch readiness?",
-                "expected_answer": "The Platform Engineer is highest risk because of a low practice score, missing certification readiness, high meeting load, and low focus capacity."
+                "expected_answer": "The highest-risk role is determined by missing certifications, low practice scores, high meeting load, and low focus capacity."
             },
             {
                 "question": "Why should LaunchGuard avoid declaring Green readiness too early?",
@@ -169,8 +185,8 @@ def readiness_verifier_agent(
     }
 
 
-def run_launchguard_flow() -> Dict[str, Any]:
-    inputs = load_inputs()
+def run_launchguard_flow(scenario_name: str | None = None) -> Dict[str, Any]:
+    inputs = load_inputs(scenario_name=scenario_name)
 
     requirement_output = requirement_curator_agent(
         launch_request=inputs["launch_request"],
@@ -189,6 +205,7 @@ def run_launchguard_flow() -> Dict[str, Any]:
     )
 
     return {
+        "scenario_name": inputs["scenario_name"],
         "launch_request": inputs["launch_request"],
         "team_roster": inputs["team_roster"],
         "workload_df": inputs["workload_df"],
@@ -202,4 +219,72 @@ def run_launchguard_flow() -> Dict[str, Any]:
             "Human approval required before any launch readiness decision",
             "Low-confidence or missing-evidence situations should block Green readiness"
         ]
+    }
+
+
+def run_recovery_sprint_simulation(scenario_name: str | None = None) -> Dict[str, Any]:
+    inputs = load_inputs(scenario_name=scenario_name)
+
+    improved_team_roster = []
+    for member in inputs["team_roster"]:
+        updated = dict(member)
+
+        current_certs = set(updated.get("current_certs", []))
+        required_certs = set(updated.get("required_certs", []))
+        missing_certs = required_certs - current_certs
+
+        if updated.get("practice_score_avg", 0) < 75:
+            updated["practice_score_avg"] = min(78, int(updated.get("practice_score_avg", 0)) + 10)
+
+        if updated.get("hours_studied", 0) < 20:
+            updated["hours_studied"] = 20
+
+        if "RAI-FOUNDATIONS" in missing_certs:
+            current_certs.add("RAI-FOUNDATIONS")
+
+        updated["current_certs"] = sorted(current_certs)
+        improved_team_roster.append(updated)
+
+    improved_workload_by_employee = {}
+    for employee_id, workload in inputs["workload_by_employee"].items():
+        updated_workload = dict(workload)
+
+        if int(updated_workload.get("meeting_hours_per_week", 0)) > 20:
+            updated_workload["meeting_hours_per_week"] = 18
+
+        if int(updated_workload.get("focus_hours_per_week", 0)) < 12:
+            updated_workload["focus_hours_per_week"] = 12
+
+        improved_workload_by_employee[employee_id] = updated_workload
+
+    requirement_output = requirement_curator_agent(
+        launch_request=inputs["launch_request"],
+        team_roster=improved_team_roster,
+    )
+
+    capacity_output = capacity_planner_agent(
+        requirement_output=requirement_output,
+        workload_by_employee=improved_workload_by_employee,
+    )
+
+    verifier_output = readiness_verifier_agent(
+        requirement_output=requirement_output,
+        capacity_output=capacity_output,
+        workload_by_employee=improved_workload_by_employee,
+    )
+
+    return {
+        "scenario": "After manager-approved 14-day recovery sprint",
+        "changed_actions": [
+            "Protected focus time for overloaded team members",
+            "Reduced meeting load for high-risk roles",
+            "Raised practice scores through targeted certification drills",
+            "Completed Responsible AI Foundations where missing",
+            "Reassessed launch readiness after recovery actions"
+        ],
+        "team_roster": improved_team_roster,
+        "workload_by_employee": improved_workload_by_employee,
+        "requirement_output": requirement_output,
+        "capacity_output": capacity_output,
+        "verifier_output": verifier_output
     }

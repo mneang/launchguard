@@ -1,0 +1,60 @@
+{
+  "scenario_name": "Ready With Approval",
+  "launch_request": {
+    "launch_request_id": "LR-055",
+    "initiative": "Project Horizon Support Copilot",
+    "launch_target_date": "2026-07-12",
+    "business_goal": "Release an internal AI support copilot for knowledge-base triage.",
+    "required_team_roles": ["AI Engineer", "Platform Engineer", "Product Lead"],
+    "manager_request": "Tell me if the team is ready and what approval evidence is required."
+  },
+  "team_roster": [
+    {
+      "employee_id": "EMP-031",
+      "role": "AI Engineer",
+      "current_certs": ["AI-900", "AI-102", "RAI-FOUNDATIONS"],
+      "required_certs": ["AI-102", "RAI-FOUNDATIONS"],
+      "practice_score_avg": 84,
+      "hours_studied": 24,
+      "last_assessment_date": "2026-06-04"
+    },
+    {
+      "employee_id": "EMP-032",
+      "role": "Platform Engineer",
+      "current_certs": ["AZ-900", "AZ-204", "RAI-FOUNDATIONS"],
+      "required_certs": ["AZ-204", "RAI-FOUNDATIONS"],
+      "practice_score_avg": 82,
+      "hours_studied": 23,
+      "last_assessment_date": "2026-06-04"
+    },
+    {
+      "employee_id": "EMP-033",
+      "role": "Product Lead",
+      "current_certs": ["AI-900", "RAI-FOUNDATIONS"],
+      "required_certs": ["RAI-FOUNDATIONS"],
+      "practice_score_avg": 86,
+      "hours_studied": 21,
+      "last_assessment_date": "2026-06-05"
+    }
+  ],
+  "workload_signals": [
+    {
+      "employee_id": "EMP-031",
+      "meeting_hours_per_week": 14,
+      "focus_hours_per_week": 16,
+      "preferred_learning_slot": "Morning"
+    },
+    {
+      "employee_id": "EMP-032",
+      "meeting_hours_per_week": 15,
+      "focus_hours_per_week": 17,
+      "preferred_learning_slot": "Afternoon"
+    },
+    {
+      "employee_id": "EMP-033",
+      "meeting_hours_per_week": 12,
+      "focus_hours_per_week": 18,
+      "preferred_learning_slot": "Morning"
+    }
+  ]
+}

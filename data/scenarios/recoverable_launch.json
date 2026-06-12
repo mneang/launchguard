@@ -1,0 +1,60 @@
+{
+  "scenario_name": "Recoverable Launch",
+  "launch_request": {
+    "launch_request_id": "LR-034",
+    "initiative": "Project Atlas AI Reviewer",
+    "launch_target_date": "2026-07-05",
+    "business_goal": "Release an internal AI review assistant for engineering teams.",
+    "required_team_roles": ["AI Engineer", "Platform Engineer", "Product Lead"],
+    "manager_request": "Tell me whether this team can recover readiness before launch."
+  },
+  "team_roster": [
+    {
+      "employee_id": "EMP-014",
+      "role": "AI Engineer",
+      "current_certs": ["AI-900", "RAI-FOUNDATIONS"],
+      "required_certs": ["AI-102", "RAI-FOUNDATIONS"],
+      "practice_score_avg": 74,
+      "hours_studied": 18,
+      "last_assessment_date": "2026-06-02"
+    },
+    {
+      "employee_id": "EMP-018",
+      "role": "Platform Engineer",
+      "current_certs": ["AZ-900", "AZ-204", "RAI-FOUNDATIONS"],
+      "required_certs": ["AZ-204", "RAI-FOUNDATIONS"],
+      "practice_score_avg": 77,
+      "hours_studied": 21,
+      "last_assessment_date": "2026-06-03"
+    },
+    {
+      "employee_id": "EMP-022",
+      "role": "Product Lead",
+      "current_certs": ["AI-900", "RAI-FOUNDATIONS"],
+      "required_certs": ["RAI-FOUNDATIONS"],
+      "practice_score_avg": 81,
+      "hours_studied": 19,
+      "last_assessment_date": "2026-06-01"
+    }
+  ],
+  "workload_signals": [
+    {
+      "employee_id": "EMP-014",
+      "meeting_hours_per_week": 18,
+      "focus_hours_per_week": 12,
+      "preferred_learning_slot": "Morning"
+    },
+    {
+      "employee_id": "EMP-018",
+      "meeting_hours_per_week": 16,
+      "focus_hours_per_week": 15,
+      "preferred_learning_slot": "Afternoon"
+    },
+    {
+      "employee_id": "EMP-022",
+      "meeting_hours_per_week": 14,
+      "focus_hours_per_week": 17,
+      "preferred_learning_slot": "Morning"
+    }
+  ]
+}

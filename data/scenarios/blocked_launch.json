@@ -1,0 +1,60 @@
+{
+  "scenario_name": "Blocked Launch",
+  "launch_request": {
+    "launch_request_id": "LR-021",
+    "initiative": "Project Nova Copilot",
+    "launch_target_date": "2026-06-28",
+    "business_goal": "Release an internal AI assistant for support analysts.",
+    "required_team_roles": ["AI Engineer", "Platform Engineer", "Product Lead"],
+    "manager_request": "Tell me if the team is truly ready to launch and what we must fix first."
+  },
+  "team_roster": [
+    {
+      "employee_id": "EMP-004",
+      "role": "AI Engineer",
+      "current_certs": ["AI-900"],
+      "required_certs": ["AI-102", "RAI-FOUNDATIONS"],
+      "practice_score_avg": 71,
+      "hours_studied": 16,
+      "last_assessment_date": "2026-05-28"
+    },
+    {
+      "employee_id": "EMP-007",
+      "role": "Platform Engineer",
+      "current_certs": ["AZ-900"],
+      "required_certs": ["AZ-204", "RAI-FOUNDATIONS"],
+      "practice_score_avg": 64,
+      "hours_studied": 12,
+      "last_assessment_date": "2026-05-30"
+    },
+    {
+      "employee_id": "EMP-011",
+      "role": "Product Lead",
+      "current_certs": ["AI-900", "RAI-FOUNDATIONS"],
+      "required_certs": ["RAI-FOUNDATIONS"],
+      "practice_score_avg": 83,
+      "hours_studied": 20,
+      "last_assessment_date": "2026-06-01"
+    }
+  ],
+  "workload_signals": [
+    {
+      "employee_id": "EMP-004",
+      "meeting_hours_per_week": 19,
+      "focus_hours_per_week": 11,
+      "preferred_learning_slot": "Morning"
+    },
+    {
+      "employee_id": "EMP-007",
+      "meeting_hours_per_week": 24,
+      "focus_hours_per_week": 7,
+      "preferred_learning_slot": "Afternoon"
+    },
+    {
+      "employee_id": "EMP-011",
+      "meeting_hours_per_week": 13,
+      "focus_hours_per_week": 16,
+      "preferred_learning_slot": "Morning"
+    }
+  ]
+}
