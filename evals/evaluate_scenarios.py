@@ -77,6 +77,20 @@ def evaluate_scenario(scenario_name: str) -> Dict[str, Any]:
         f"Coverage: {coverage['coverage_percent']}%."
     ))
 
+    grounding_contract = verifier.get("grounding_contract", {})
+
+    checks.append(check(
+        grounding_contract.get("passed") is True,
+        "Grounding contract passes",
+        grounding_contract.get("summary", "No grounding summary found.")
+    ))
+
+    checks.append(check(
+        not (initial_status == "Green" and grounding_contract.get("passed") is not True),
+        "Green readiness requires grounding contract",
+        f"Initial status: {initial_status}; grounding passed: {grounding_contract.get('passed')}."
+    ))
+
     checks.append(check(
         "approve" in verifier["approval_recommendation"].lower(),
         "Approval guidance is present",

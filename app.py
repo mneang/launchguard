@@ -474,6 +474,21 @@ with agent_tab:
 with evidence_tab:
     st.markdown("## Evidence & Safety")
 
+    grounding_contract = base_verifier.get("grounding_contract", {})
+
+    if grounding_contract.get("passed"):
+        st.success("Grounding contract passed: required readiness claims are backed by the synthetic evidence package.")
+    else:
+        st.error("Grounding contract failed: missing evidence prevents Green readiness.")
+
+    gc1, gc2, gc3 = st.columns(3)
+    with gc1:
+        st.metric("Grounding Contract", "Passed" if grounding_contract.get("passed") else "Failed")
+    with gc2:
+        st.metric("Contract Coverage", f"{grounding_contract.get('coverage_percent', 0)}%")
+    with gc3:
+        st.metric("Green Requires Evidence", "Yes")
+
     e1, e2 = st.columns([1, 1])
 
     with e1:

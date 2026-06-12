@@ -11,6 +11,7 @@ from src.utils.scoring import (
     classify_team_status,
     make_recommended_actions,
 )
+from src.utils.grounding_contract import evaluate_grounding_contract, enforce_grounding_on_verdict
 from src.utils.scenarios import (
     load_scenario,
     scenario_to_workload_df,
@@ -150,7 +151,9 @@ def readiness_verifier_agent(
         risk = classify_member_risk(member, workload)
         member_risks.append(risk)
 
-    team_status = classify_team_status(member_risks)
+    raw_team_status = classify_team_status(member_risks)
+    grounding_result = evaluate_grounding_contract(SYNTHETIC_CITATIONS)
+    team_status = enforce_grounding_on_verdict(raw_team_status, grounding_result)
     recommended_actions = make_recommended_actions(member_risks)
 
     if team_status == "Green":
@@ -167,6 +170,8 @@ def readiness_verifier_agent(
         "agent": "Readiness Verifier Agent",
         "purpose": "Verify certification readiness, classify launch risk, and produce a manager-safe verdict.",
         "team_status": team_status,
+        "raw_team_status": raw_team_status,
+        "grounding_contract": grounding_result,
         "executive_summary": executive_summary,
         "member_risks": member_risks,
         "recommended_actions": recommended_actions,

@@ -1,8 +1,8 @@
 {
   "project": "LaunchGuard",
   "evaluation_type": "Scenario hardening evaluation",
-  "checks_passed": 24,
-  "checks_total": 24,
+  "checks_passed": 30,
+  "checks_total": 30,
   "scenarios": [
     {
       "scenario": "Blocked Launch",
@@ -11,8 +11,8 @@
       "actual_recovery_status": "Amber",
       "initial_score": 65,
       "recovery_score": 77,
-      "checks_passed": 8,
-      "checks_total": 8,
+      "checks_passed": 10,
+      "checks_total": 10,
       "checks": [
         {
           "check": "Initial verdict matches scenario expectation",
@@ -40,6 +40,16 @@
           "details": "Coverage: 100%."
         },
         {
+          "check": "Grounding contract passes",
+          "passed": true,
+          "details": "Grounding contract passed. Required readiness claims are backed by the synthetic evidence package."
+        },
+        {
+          "check": "Green readiness requires grounding contract",
+          "passed": true,
+          "details": "Initial status: Red; grounding passed: True."
+        },
+        {
           "check": "Approval guidance is present",
           "passed": true,
           "details": "Do not approve launch. Escalate blockers and protect learning capacity first."
@@ -63,8 +73,8 @@
       "actual_recovery_status": "Amber",
       "initial_score": 88,
       "recovery_score": 88,
-      "checks_passed": 8,
-      "checks_total": 8,
+      "checks_passed": 10,
+      "checks_total": 10,
       "checks": [
         {
           "check": "Initial verdict matches scenario expectation",
@@ -92,6 +102,16 @@
           "details": "Coverage: 100%."
         },
         {
+          "check": "Grounding contract passes",
+          "passed": true,
+          "details": "Grounding contract passed. Required readiness claims are backed by the synthetic evidence package."
+        },
+        {
+          "check": "Green readiness requires grounding contract",
+          "passed": true,
+          "details": "Initial status: Amber; grounding passed: True."
+        },
+        {
           "check": "Approval guidance is present",
           "passed": true,
           "details": "Do not approve final launch yet. Run the recommended readiness sprint and reassess."
@@ -115,8 +135,8 @@
       "actual_recovery_status": "Green",
       "initial_score": 100,
       "recovery_score": 100,
-      "checks_passed": 8,
-      "checks_total": 8,
+      "checks_passed": 10,
+      "checks_total": 10,
       "checks": [
         {
           "check": "Initial verdict matches scenario expectation",
@@ -142,6 +162,16 @@
           "check": "Evidence coverage is strong",
           "passed": true,
           "details": "Coverage: 100%."
+        },
+        {
+          "check": "Grounding contract passes",
+          "passed": true,
+          "details": "Grounding contract passed. Required readiness claims are backed by the synthetic evidence package."
+        },
+        {
+          "check": "Green readiness requires grounding contract",
+          "passed": true,
+          "details": "Initial status: Green; grounding passed: True."
         },
         {
           "check": "Approval guidance is present",
