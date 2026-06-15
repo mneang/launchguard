@@ -10,6 +10,14 @@ Instead of acting like a generic certification planner, LaunchGuard evaluates ce
 
 ---
 
+## Live Demo
+
+🚀 **Deployed App:** https://launchguard-agents-league-26.streamlit.app/
+
+The deployed demo runs with deterministic local grounding for reliability and cost control. The project remains Microsoft Foundry-ready through environment variables and includes a Foundry IQ-ready synthetic knowledge package in `kb_docs/`.
+
+---
+
 ## Why It Matters
 
 Internal AI teams are moving fast, but launch readiness can become a loose checklist:
@@ -224,3 +232,7 @@ It helps managers:
 6. Keep final approval human-controlled
 
 > **Move fast without approving unsafe AI launches.**
+
+## License
+
+This project is released under the MIT License. See [`LICENSE`](LICENSE) for details.
