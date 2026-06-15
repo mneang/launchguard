@@ -175,11 +175,11 @@ with st.sidebar:
     st.title("🚀 LaunchGuard")
     st.caption("Manager launch-readiness cockpit")
 
-    st.markdown("### System Status")
+    st.markdown("### Demo Runtime")
     if runtime["status"] == "Configured":
         st.success("Foundry-ready")
     else:
-        st.warning("Local fallback mode")
+        st.info("Cost-controlled local grounding")
     st.caption(runtime["details"])
 
     st.divider()
