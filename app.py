@@ -217,7 +217,8 @@ with st.sidebar:
             st.session_state.foundry_memo = memo_result["memo"]
             st.session_state.foundry_error = memo_result["error"]
     else:
-        st.info("Foundry not configured.")
+        st.info("Optional live adapter")
+        st.caption("Deployed demo uses local grounding. Foundry config can be added with environment variables.")
 
     if st.session_state.foundry_memo:
         st.success("Memo prepared.")
